@@ -103,11 +103,27 @@ void sequende_RGB( int R, int G, int B ){
 
 void sequence_pallet( int palette, int speed ){
 
+
   if ( speed <= 2 ) {
     millis_per_chase = 0;
   } else {
     millis_per_chase = map( speed, 1, 255, 150, 1 );
   }
+
+  unsigned int increment;
+ 
+/*  if (( speed <= 126 ) || ( speed <= 130 )) {
+    millis_per_chase = 0;
+    increment = 0;
+  } else if ( speed < 126 ) {
+    millis_per_chase = map( speed, 0, 126, 150, 1 );
+    increment = +1;
+  } else if ( speed < 126 ) {{
+    millis_per_chase = map( speed, 131, 255, 150, 1 );
+    increment = -1;
+  }
+*/
+
 
   if( palette <  23)      { currentPalette = RainbowColors_p;         currentBlending = LINEARBLEND; }
   else if( palette < 46)  { currentPalette = RainbowStripeColors_p;   currentBlending = NOBLEND;  }
@@ -124,7 +140,7 @@ void sequence_pallet( int palette, int speed ){
   // Perform Chase here and re-fill LED's
   if ( millis() > (last_chase_millis + millis_per_chase) ) {
     if ( millis_per_chase > 0 ) 
-      startIndex = startIndex + 1;
+      startIndex = startIndex + increment;
       
     FillLEDsFromPaletteColors( startIndex );
     

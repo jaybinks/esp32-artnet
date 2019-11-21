@@ -1,7 +1,9 @@
 #include <Artnet.h>
 #include <Preferences.h>
 #include "FastLED.h"
-//#include "esp_wifi.h" // needed for esp_wifi_set_ps ( power saving mode )
+//#include "SPIFFS.h"
+
+#include "esp_wifi.h" // needed for esp_wifi_set_ps ( power saving mode )
 
 #include <WiFi.h>
 #include <WiFiMulti.h>
@@ -23,14 +25,11 @@ unsigned int pref_config_mode;
 
 #define FASTLED_INTERRUPT_RETRY_COUNT 3
 
-
 #define FRAMES_PER_SECOND 60
 #define LED_DATA_PIN 18 //D1
 
-//#define NUM_LEDS  30 //91
 unsigned int pref_num_leds;
 
-//CRGB leds[NUM_LEDS];
 CRGB leds[256];
 
 unsigned long last_LED_millis;
@@ -39,7 +38,8 @@ unsigned long millis_per_refresh;
 unsigned long last_chase_millis;
 unsigned long millis_per_chase;
 
-//unsigned long lastDMXPacket;
+unsigned long last_http_millis = 0;
+
 
 CRGBPalette16 currentPalette;
 TBlendType    currentBlending;
@@ -66,9 +66,6 @@ unsigned int ButtonStateMilli[] = {0,0};
 boolean perform_wipe_wifi = false;
 
 char ipaddress[16];
-//const IPAddress ip(192, 168, 86, 10);
-//const IPAddress gateway(192, 168, 86, 1);
-//const IPAddress subnet(255, 255, 255, 0);
 
 
 /* Sine Wave */
@@ -134,35 +131,27 @@ void setup () {
   dmx_data = NULL;
   Serial.begin(115200);
 
-  // Disable powersaving mode on ESP32... this provides better ping times
-  // https://github.com/espressif/arduino-esp32/issues/1484
-  WiFi.setSleep(false);  
-
-  //esp_wifi_set_ps (WIFI_PS_NONE);
 
   // Load Preferences
   // **********************************************************************
   preferences.begin("my-app", false);
-
-
-  pref_wifi_SSID  = preferences.getString("pref_wifi_SSID", "" );
-  pref_wifi_Pass  = preferences.getString("pref_wifi_Pass", "" );
-
-  // Load from preferences and convert to required type 
-  pref_num_leds     = preferences.getUInt("pref_num_leds", 256 );
-  pref_led_first    = preferences.getUInt("pref_led_first", 0 );
-  pref_led_last     = preferences.getUInt("pref_led_last", 50 );
-  pref_config_mode  = preferences.getUInt("pref_config_mode", 0 );
-
-  pref_artnet_universe     = preferences.getUInt("pref_artnet_universe", 0 );
-  pref_artnet_startchannel = preferences.getUInt("pref_artnet_startchannel", 0 );
+    pref_wifi_SSID  = preferences.getString("pref_wifi_SSID", "" );
+    pref_wifi_Pass  = preferences.getString("pref_wifi_Pass", "" );
   
+    // Load from preferences and convert to required type 
+    pref_num_leds     = preferences.getUInt("pref_num_leds", 256 );
+    pref_led_first    = preferences.getUInt("pref_led_first", 0 );
+    pref_led_last     = preferences.getUInt("pref_led_last", 50 );
+    pref_config_mode  = preferences.getUInt("pref_config_mode", 0 );
+  
+    pref_artnet_universe     = preferences.getUInt("pref_artnet_universe", 0 );
+    pref_artnet_startchannel = preferences.getUInt("pref_artnet_startchannel", 0 ); 
   preferences.end();
 
   Serial.printf("PREFERENCES SET ********\n");
 
   Serial.printf("  pref_wifi_SSID:    %s\n", pref_wifi_SSID);
-  Serial.printf("  pref_wifi_Pass:    %s\n", pref_wifi_Pass);
+  Serial.printf("  pref_wifi_Pass:    %s\n", (pref_wifi_Pass=="")?">>Set<<":"");
   
   Serial.printf("  pref_config_mode: %d\n", pref_config_mode);
   
@@ -173,13 +162,34 @@ void setup () {
   Serial.printf("  pref_artnet_universe:        %d\n", pref_artnet_universe);
   Serial.printf("  pref_artnet_startchannel:    %d\n", pref_artnet_startchannel);
   Serial.println("");
+
+
+  // Initialise SPIFFS
+  // **********************************************************************
+  
+/*  
+ *   if(!SPIFFS.begin(true)){
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    return;
+  }
+
+File file = SPIFFS.open("/index.html");
+  if(!file){
+    Serial.println("Failed to open file for reading");
+    return;
+  }
+  
+  Serial.println("File Content:");
+  while(file.available()){
+    Serial.write(file.read());
+  }
+  file.close();  
+*/
  
   // Initialise LED's
   // **********************************************************************
   FastLED.addLeds<WS2812, LED_DATA_PIN>(leds, pref_num_leds); 
-
   config_wifi();
- 
 
   // Indicate connecting wifi
   sequence_WIFI_Connecting();
@@ -189,7 +199,12 @@ void setup () {
   // Connect to WIFI
   // **********************************************************************
   Serial.print("Connecting to WIFI ");
-  
+
+  // Disable powersaving mode on ESP32... this provides better ping times
+  // https://github.com/espressif/arduino-esp32/issues/1484
+  WiFi.setSleep(false);  
+  esp_wifi_set_ps (WIFI_PS_NONE);
+    
   WiFi.begin( pref_wifi_SSID.c_str(), pref_wifi_Pass.c_str());
   //WiFi.config(ip, gateway, subnet);
   
@@ -254,45 +269,54 @@ void setup () {
 
 
 void loop() {
-  server.handleClient(); // check for webserver packet
+
+  // Only run the webserver and wifi reset conditions for the first 120sec of operation..
+  // after that, try and give more time to ArtNET and LED painting
+  if ( millis() <= last_http_millis + 120000 ) {
+  
+    // Only check webserver ... every 1 second ... 
+    if ( millis() % 10 == 0 ) {
+      //Serial.printf("%d WebServer Check\n", millis() );
+      server.handleClient(); // check for webserver packet
+    }
+  
+    if ( perform_wipe_wifi == true ) {
+      wipe_wifi();  
+    }
+  }
+
   artnet.parse(); // check for artnet packet 
 
-  if ( perform_wipe_wifi == true ) {
-    wipe_wifi();  
-  }
 
   //int sine = sine_wave();
   //Serial.println(sine);
 
-  if ( pref_config_mode == 1 ) {
-    FastLED.setBrightness( 255 );
-    sequence_config_mode();
-  } else { 
-      FastLED.setBrightness( brightness );
-      if ( dmx_data != NULL ) {
-        if ( mode < Mode_Channel_Value_Pallet ) {
-          sequende_RGB( dmx_data[DMXChannel_RGB_B], dmx_data[DMXChannel_RGB_R], dmx_data[DMXChannel_RGB_G] ); 
-        } else if ( mode > Mode_Channel_Value_Pallet && mode < Mode_Channel_Value_Glitter ) { 
-          sequence_pallet( dmx_data[DMXChannel_Palet_Palet], dmx_data[DMXChannel_Palet_Speed] );
-        } else if ( mode > Mode_Channel_Value_Glitter && mode < Mode_Channel_Value_Fire ) { 
-          sequence_glitter( dmx_data[DMXChannel_Glitter_Count], dmx_data[DMXChannel_Glitter_Speed], dmx_data[DMXChannel_Glitter_R], dmx_data[DMXChannel_Glitter_G], dmx_data[DMXChannel_Glitter_B] );
-        } else if ( mode > Mode_Channel_Value_Fire ) {
-          
-          sequence_fire(dmx_data[DMXChannel_Glitter_Count], dmx_data[DMXChannel_Glitter_Speed], dmx_data[DMXChannel_Glitter_R]);
-        }
 
-        
-      }    
-  }
-
-  
-  
+    
+    if ( pref_config_mode == 1 ) {
+      FastLED.setBrightness( 255 );
+      sequence_config_mode();
+    } else { 
+        FastLED.setBrightness( brightness );
+        if ( dmx_data != NULL ) {
+          if ( mode < Mode_Channel_Value_Pallet ) {
+            sequende_RGB( dmx_data[DMXChannel_RGB_B], dmx_data[DMXChannel_RGB_R], dmx_data[DMXChannel_RGB_G] ); 
+          } else if ( mode > Mode_Channel_Value_Pallet && mode < Mode_Channel_Value_Glitter ) { 
+            sequence_pallet( dmx_data[DMXChannel_Palet_Palet], dmx_data[DMXChannel_Palet_Speed] );
+          } else if ( mode > Mode_Channel_Value_Glitter && mode < Mode_Channel_Value_Fire ) { 
+            sequence_glitter( dmx_data[DMXChannel_Glitter_Count], dmx_data[DMXChannel_Glitter_Speed], dmx_data[DMXChannel_Glitter_R], dmx_data[DMXChannel_Glitter_G], dmx_data[DMXChannel_Glitter_B] );
+          } else if ( mode > Mode_Channel_Value_Fire ) {
+            
+            sequence_fire(dmx_data[DMXChannel_Glitter_Count], dmx_data[DMXChannel_Glitter_Speed], dmx_data[DMXChannel_Glitter_R]);
+          }
+        }    
+    } 
 
   // If an LED update is due, then output 
-  //if ( millis() > (last_LED_millis + millis_per_refresh) ) {
+  if ( millis() >= (last_LED_millis + millis_per_refresh) ) {
     FastLED.show(); 
     last_LED_millis = millis();
-  //}
+  }
 }
 // End main loop
 
@@ -324,7 +348,7 @@ void int_buttonpress() {
 
 void artnet_callback(uint8_t* data, uint16_t size)
 {
-    //Serial.print("lambda : artnet data  ");
+    //Serial.print("lambda : artnet data \n");
 
     for (size_t i = 0; i < size; ++i)
     {
