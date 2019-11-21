@@ -67,7 +67,4 @@ void webserver_routine(void) {
   });
   
   server.begin();
-  //MDNS.addService("http", "tcp", 80);
-
- Serial.printf("Ready! Open http://192.168.86.10 in your browser\n");
 }

@@ -1,7 +1,10 @@
 #include <Artnet.h>
 #include <Preferences.h>
 #include "FastLED.h"
-#include "esp_wifi.h" // needed for esp_wifi_set_ps ( power saving mode )
+//#include "esp_wifi.h" // needed for esp_wifi_set_ps ( power saving mode )
+
+#include <WiFi.h>
+#include <WiFiMulti.h>
 
 //#include "ESPAsyncWebServer.h"
 #include <WebServer.h>
@@ -56,9 +59,9 @@ ArtnetReceiver artnet;
 uint32_t pref_artnet_universe = 1;
 uint8_t pref_artnet_startchannel =1;
 
-const IPAddress ip(192, 168, 86, 10);
-const IPAddress gateway(192, 168, 86, 1);
-const IPAddress subnet(255, 255, 255, 0);
+//const IPAddress ip(192, 168, 86, 10);
+//const IPAddress gateway(192, 168, 86, 1);
+//const IPAddress subnet(255, 255, 255, 0);
 
 
 /* Sine Wave */
@@ -126,7 +129,7 @@ void setup () {
   // https://github.com/espressif/arduino-esp32/issues/1484
   WiFi.setSleep(false);  
   WiFi.mode (WIFI_STA);
-  esp_wifi_set_ps (WIFI_PS_NONE);
+  //esp_wifi_set_ps (WIFI_PS_NONE);
 
   // Load Preferences
   // **********************************************************************
@@ -164,15 +167,21 @@ void setup () {
   
   // Connect to WIFI
   // **********************************************************************
-  Serial.print("Connecting to WIFI\n");
+  Serial.print("Connecting to WIFI ");
   
   WiFi.begin("binks", "0417001920");
-  WiFi.config(ip, gateway, subnet);
+  //WiFi.config(ip, gateway, subnet);
+  
   while (WiFi.status() != WL_CONNECTED) { 
      Serial.print("."); 
-     delay(500); 
+     delay(100); 
   }
-  Serial.printf("WiFi connected, IP = %s", WiFi.localIP());
+
+  IPAddress ip = WiFi.localIP();
+  char ipaddress[16];
+  
+  sprintf(ipaddress, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
+  Serial.printf("\n  Connected; IP = %s\n", ipaddress );
 
   // Start ArtNET
   // **********************************************************************
@@ -193,6 +202,8 @@ void setup () {
   delay(100);
    
   webserver_routine();
+  Serial.printf("  Open http://%s in your browser\n", ipaddress);
+
 
   // Execute the startup sequence
   // **********************************************************************
@@ -212,19 +223,17 @@ void setup () {
   currentBlending = LINEARBLEND;
 
   startIndex = 0;
-  Serial.print("startup done\n");
+  Serial.print("Startup Complete\n");
 }
 
 
 void loop() {
-  //Serial.print("Loop!\n");
-
   server.handleClient(); // check for webserver packet
   artnet.parse(); // check for artnet packet 
   
 
   int sine = sine_wave();
-  Serial.println(sine);
+  //Serial.println(sine);
 
   if ( pref_config_mode == 1 ) {
     FastLED.setBrightness( 255 );
