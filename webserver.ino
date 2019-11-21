@@ -58,6 +58,10 @@ void webserver_routine(void) {
     
     //request->redirect("/");
     //server.send(302, "Found", "Location: /");
+    
+    server.sendHeader("Location", "/",true); //Redirect to our html web page 
+    server.send(302, "text/plane",""); 
+
     server.sendHeader("Connection", "close");
   });
 
