@@ -94,22 +94,35 @@ void sequence_startup(){
 
 
 
-void sequende_RGB( int R, int G, int B ){
+void sequende_RGB( int R, int G, int B, int StrobeSpeedA, int StrobeSpeedB ){
   // RGB Mode
-  for ( int i=0; i<pref_num_leds; i++ ) {
-    leds[i] = CRGB( R, G, B );
+
+  if ( StrobeSpeedA==0 && StrobeSpeedB==0 ) {
+    startIndex = 1;
+  } else {
+    // Map 0-255 as BPM... into MS
+    int RGB_Millis   = 60000/(StrobeSpeedA+(StrobeSpeedB*5)); //map( StrobeSpeedA, 1, 255, 1000, 1 );
+
+    if ( millis() >= last_chase_millis ) {
+      startIndex ++;
+      last_chase_millis = millis() + RGB_Millis;      
+    }
   }
+  
+  // Paint RGB or Black, depending on if startindex is odd or even
+  if ( startIndex%2 == 0 ) {
+    for ( int i=0; i<pref_num_leds; i++ ) {
+      leds[i] = CRGB( 0,0,0 );
+    }    
+  } else {
+    for ( int i=0; i<pref_num_leds; i++ ) {
+      leds[i] = CRGB( R, G, B );
+    }
+  }  
+
 }
 
 void sequence_pallet( int palette, int speed ){
-
-/*
-  if ( speed <= 2 ) {
-    millis_per_chase = 0;
-  } else {
-    millis_per_chase = map( speed, 1, 255, 150, 1 );
-  }
-*/  
 
   unsigned int increment;
 

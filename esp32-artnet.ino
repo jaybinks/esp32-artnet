@@ -85,6 +85,8 @@ int w=0;
 #define DMXChannel_RGB_R DMXChannel_Start+2
 #define DMXChannel_RGB_G DMXChannel_Start+3
 #define DMXChannel_RGB_B DMXChannel_Start+4
+#define DMXChannel_RGB_StrobeSpeedA DMXChannel_Start+5
+#define DMXChannel_RGB_StrobeSpeedB DMXChannel_Start+6
 
 #define DMXChannel_Palet_Palet DMXChannel_Start+2
 #define DMXChannel_Palet_Speed DMXChannel_Start+3
@@ -300,13 +302,12 @@ void loop() {
         FastLED.setBrightness( brightness );
         if ( dmx_data != NULL ) {
           if ( mode < Mode_Channel_Value_Pallet ) {
-            sequende_RGB( dmx_data[DMXChannel_RGB_B], dmx_data[DMXChannel_RGB_R], dmx_data[DMXChannel_RGB_G] ); 
+            sequende_RGB( dmx_data[DMXChannel_RGB_B], dmx_data[DMXChannel_RGB_R], dmx_data[DMXChannel_RGB_G], dmx_data[DMXChannel_RGB_StrobeSpeedA], dmx_data[DMXChannel_RGB_StrobeSpeedB] ); 
           } else if ( mode > Mode_Channel_Value_Pallet && mode < Mode_Channel_Value_Glitter ) { 
             sequence_pallet( dmx_data[DMXChannel_Palet_Palet], dmx_data[DMXChannel_Palet_Speed] );
           } else if ( mode > Mode_Channel_Value_Glitter && mode < Mode_Channel_Value_Fire ) { 
             sequence_glitter( dmx_data[DMXChannel_Glitter_Count], dmx_data[DMXChannel_Glitter_Speed], dmx_data[DMXChannel_Glitter_R], dmx_data[DMXChannel_Glitter_G], dmx_data[DMXChannel_Glitter_B] );
-          } else if ( mode > Mode_Channel_Value_Fire ) {
-            
+          } else if ( mode > Mode_Channel_Value_Fire ) {    
             sequence_fire(dmx_data[DMXChannel_Glitter_Count], dmx_data[DMXChannel_Glitter_Speed], dmx_data[DMXChannel_Glitter_R]);
           }
         }    
