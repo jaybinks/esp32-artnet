@@ -8,6 +8,16 @@ void sequence_BLACK() {
   }
 }
 
+void sequence_WIFI_SmartConfig() {
+  // All LED's are RED
+  // Every 2nd LED is bright
+  for ( int i=0; i<pref_num_leds; i=i+3 ) {
+    leds[i]   = CRGB( 255,0,0);
+    leds[i+1] = CRGB( 0,255,0);
+    leds[i+2] = CRGB( 0,0,255);    
+  }
+}
+
 void sequence_WIFI_Connecting() {
   // All LED's are RED
   // Every 2nd LED is bright

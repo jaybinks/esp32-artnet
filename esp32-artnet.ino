@@ -59,6 +59,12 @@ ArtnetReceiver artnet;
 uint32_t pref_artnet_universe = 1;
 uint8_t pref_artnet_startchannel =1;
 
+String pref_wifi_SSID;
+String pref_wifi_Pass;
+
+unsigned int ButtonStateMilli[] = {0,0};
+boolean perform_wipe_wifi = false;
+
 char ipaddress[16];
 //const IPAddress ip(192, 168, 86, 10);
 //const IPAddress gateway(192, 168, 86, 1);
@@ -131,12 +137,16 @@ void setup () {
   // Disable powersaving mode on ESP32... this provides better ping times
   // https://github.com/espressif/arduino-esp32/issues/1484
   WiFi.setSleep(false);  
-  WiFi.mode (WIFI_STA);
+
   //esp_wifi_set_ps (WIFI_PS_NONE);
 
   // Load Preferences
   // **********************************************************************
   preferences.begin("my-app", false);
+
+
+  pref_wifi_SSID  = preferences.getString("pref_wifi_SSID", "" );
+  pref_wifi_Pass  = preferences.getString("pref_wifi_Pass", "" );
 
   // Load from preferences and convert to required type 
   pref_num_leds     = preferences.getUInt("pref_num_leds", 256 );
@@ -146,10 +156,14 @@ void setup () {
 
   pref_artnet_universe     = preferences.getUInt("pref_artnet_universe", 0 );
   pref_artnet_startchannel = preferences.getUInt("pref_artnet_startchannel", 0 );
-
+  
   preferences.end();
 
   Serial.printf("PREFERENCES SET ********\n");
+
+  Serial.printf("  pref_wifi_SSID:    %s\n", pref_wifi_SSID);
+  Serial.printf("  pref_wifi_Pass:    %s\n", pref_wifi_Pass);
+  
   Serial.printf("  pref_config_mode: %d\n", pref_config_mode);
   
   Serial.printf("  pref_num_leds:    %d\n", pref_num_leds);
@@ -158,21 +172,63 @@ void setup () {
 
   Serial.printf("  pref_artnet_universe:        %d\n", pref_artnet_universe);
   Serial.printf("  pref_artnet_startchannel:    %d\n", pref_artnet_startchannel);
-
+  Serial.println("");
  
   // Initialise LED's
   // **********************************************************************
   FastLED.addLeds<WS2812, LED_DATA_PIN>(leds, pref_num_leds); 
 
+  if ( pref_wifi_SSID == "" || pref_wifi_Pass ==  "" ) {
+    Serial.print("Entering WIFI SmartConfig Mode ");
+    
+    sequence_WIFI_SmartConfig();
+    FastLED.show();
+     
+    WiFi.mode(WIFI_AP_STA);
+    /* start SmartConfig */
+    WiFi.beginSmartConfig();
+  
+    /* Wait for SmartConfig packet from mobile */
+    Serial.println("Waiting for SmartConfig.");
+    while (!WiFi.smartConfigDone()) {
+      delay(500);
+      Serial.print(".");
+    }
+
+    /* Wait for WiFi to connect to AP */
+    Serial.println("Attempting to connect to WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+
+    preferences.begin("my-app", false);
+    preferences.putString("pref_wifi_SSID", WiFi.SSID() );
+    preferences.putString("pref_wifi_Pass", WiFi.psk() );
+    preferences.end();
+      
+    Serial.println("");
+    Serial.printf("SmartConfig done, SSID:%s\n", WiFi.SSID());
+    
+    Serial.printf("Restarting in 2 sec\n");
+    delay( 2000 );
+    ESP.restart();
+  }
+
+
+
+  
+
   // Indicate connecting wifi
   sequence_WIFI_Connecting();
   FastLED.show(); 
+  WiFi.mode (WIFI_STA);  
   
   // Connect to WIFI
   // **********************************************************************
   Serial.print("Connecting to WIFI ");
   
-  WiFi.begin("binks", "0417001920");
+  WiFi.begin( pref_wifi_SSID.c_str(), pref_wifi_Pass.c_str());
   //WiFi.config(ip, gateway, subnet);
   
   while (WiFi.status() != WL_CONNECTED) { 
@@ -238,9 +294,12 @@ void setup () {
 void loop() {
   server.handleClient(); // check for webserver packet
   artnet.parse(); // check for artnet packet 
-  
 
-  int sine = sine_wave();
+  if ( perform_wipe_wifi == true ) {
+    wipe_wifi();  
+  }
+
+  //int sine = sine_wave();
   //Serial.println(sine);
 
   if ( pref_config_mode == 1 ) {
@@ -277,13 +336,39 @@ void loop() {
 
 void int_buttonpress() {
   int buttonState = digitalRead(0); // PIN 0 = BOOT Button
+
+  ButtonStateMilli[ buttonState ] = millis();
+  
   if ( buttonState == 0 ) {
+
+    // If the WIFI isnt connected, and we press the button ... then wipe the wifi config ! 
+    if ( WiFi.status() != WL_CONNECTED ) {
+      perform_wipe_wifi = true;      
+    }
 
     // TODO : somehow notify the user easily of the allocated IP Address...
     //    Maybe send a broadcast packet with the source IP so it can be seen in wireshark ??
     //    or does ARTNET have a way to notify other artnet apps ??
     Serial.printf("  Open http://%s in your browser\n", ipaddress);
+  } else {
+    // if we hold the button down for 2 seconds, then wipe wifi preferences
+    if ( ButtonStateMilli[1] > (ButtonStateMilli[0]+2000) ) {
+      perform_wipe_wifi = true;
+    }    
   }
+}
+
+void wipe_wifi(void) {
+  Serial.printf("wipe_wifi. \n");
+  
+  preferences.begin("my-app", false);
+  preferences.putString("pref_wifi_SSID", "" );
+  preferences.putString("pref_wifi_Pass", "" );
+  preferences.end();
+    
+  Serial.printf("Wifi Config cleared. \n");
+  //delay( 2000 );
+  ESP.restart();  
 }
 
 void artnet_callback(uint8_t* data, uint16_t size)
