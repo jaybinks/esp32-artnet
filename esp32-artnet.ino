@@ -59,6 +59,7 @@ ArtnetReceiver artnet;
 uint32_t pref_artnet_universe = 1;
 uint8_t pref_artnet_startchannel =1;
 
+char ipaddress[16];
 //const IPAddress ip(192, 168, 86, 10);
 //const IPAddress gateway(192, 168, 86, 1);
 //const IPAddress subnet(255, 255, 255, 0);
@@ -71,6 +72,8 @@ const float pi=3.14159;
 int z=0;
 float v=0;
 int w=0;
+
+
 
 #define DMXChannel_Start 0
 #define DMXChannel_Mode DMXChannel_Start
@@ -178,7 +181,6 @@ void setup () {
   }
 
   IPAddress ip = WiFi.localIP();
-  char ipaddress[16];
   
   sprintf(ipaddress, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
   Serial.printf("\n  Connected; IP = %s\n", ipaddress );
@@ -203,6 +205,12 @@ void setup () {
    
   webserver_routine();
   Serial.printf("  Open http://%s in your browser\n", ipaddress);
+
+
+  // Set BOOT Button to input
+  pinMode(0, INPUT);
+  attachInterrupt(0, int_buttonpress, CHANGE);
+
 
 
   // Execute the startup sequence
@@ -267,7 +275,16 @@ void loop() {
 }
 // End main loop
 
+void int_buttonpress() {
+  int buttonState = digitalRead(0); // PIN 0 = BOOT Button
+  if ( buttonState == 0 ) {
 
+    // TODO : somehow notify the user easily of the allocated IP Address...
+    //    Maybe send a broadcast packet with the source IP so it can be seen in wireshark ??
+    //    or does ARTNET have a way to notify other artnet apps ??
+    Serial.printf("  Open http://%s in your browser\n", ipaddress);
+  }
+}
 
 void artnet_callback(uint8_t* data, uint16_t size)
 {
