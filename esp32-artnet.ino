@@ -178,46 +178,8 @@ void setup () {
   // **********************************************************************
   FastLED.addLeds<WS2812, LED_DATA_PIN>(leds, pref_num_leds); 
 
-  if ( pref_wifi_SSID == "" || pref_wifi_Pass ==  "" ) {
-    Serial.print("Entering WIFI SmartConfig Mode ");
-    
-    sequence_WIFI_SmartConfig();
-    FastLED.show();
-     
-    WiFi.mode(WIFI_AP_STA);
-    /* start SmartConfig */
-    WiFi.beginSmartConfig();
-  
-    /* Wait for SmartConfig packet from mobile */
-    Serial.println("Waiting for SmartConfig.");
-    while (!WiFi.smartConfigDone()) {
-      delay(500);
-      Serial.print(".");
-    }
-
-    /* Wait for WiFi to connect to AP */
-    Serial.println("Attempting to connect to WiFi");
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
-      Serial.print(".");
-    }
-
-    preferences.begin("my-app", false);
-    preferences.putString("pref_wifi_SSID", WiFi.SSID() );
-    preferences.putString("pref_wifi_Pass", WiFi.psk() );
-    preferences.end();
-      
-    Serial.println("");
-    Serial.printf("SmartConfig done, SSID:%s\n", WiFi.SSID());
-    
-    Serial.printf("Restarting in 2 sec\n");
-    delay( 2000 );
-    ESP.restart();
-  }
-
-
-
-  
+  config_wifi();
+ 
 
   // Indicate connecting wifi
   sequence_WIFI_Connecting();
@@ -358,18 +320,7 @@ void int_buttonpress() {
   }
 }
 
-void wipe_wifi(void) {
-  Serial.printf("wipe_wifi. \n");
-  
-  preferences.begin("my-app", false);
-  preferences.putString("pref_wifi_SSID", "" );
-  preferences.putString("pref_wifi_Pass", "" );
-  preferences.end();
-    
-  Serial.printf("Wifi Config cleared. \n");
-  //delay( 2000 );
-  ESP.restart();  
-}
+
 
 void artnet_callback(uint8_t* data, uint16_t size)
 {
@@ -404,4 +355,56 @@ int sine_wave()
   }
 
 
+}
+
+void config_wifi(void){
+  if ( pref_wifi_SSID == "" || pref_wifi_Pass ==  "" ) {
+    Serial.print("Entering WIFI SmartConfig Mode ");
+    
+    sequence_WIFI_SmartConfig();
+    FastLED.show();
+     
+    WiFi.mode(WIFI_AP_STA);
+    /* start SmartConfig */
+    WiFi.beginSmartConfig();
+  
+    /* Wait for SmartConfig packet from mobile */
+    Serial.println("Waiting for SmartConfig.");
+    while (!WiFi.smartConfigDone()) {
+      delay(500);
+      Serial.print(".");
+    }
+
+    /* Wait for WiFi to connect to AP */
+    Serial.println("\nAttempting to connect to WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      Serial.print(".");
+    }
+
+    preferences.begin("my-app", false);
+    preferences.putString("pref_wifi_SSID", WiFi.SSID() );
+    preferences.putString("pref_wifi_Pass", WiFi.psk() );
+    preferences.end();
+      
+    Serial.println("");
+    Serial.printf("SmartConfig done, SSID:%s\n", WiFi.SSID());
+    
+    Serial.printf("Restarting in 2 sec\n");
+    delay( 2000 );
+    ESP.restart();
+  }
+}
+
+void wipe_wifi(void) {
+  Serial.printf("wipe_wifi. \n");
+  
+  preferences.begin("my-app", false);
+  preferences.putString("pref_wifi_SSID", "" );
+  preferences.putString("pref_wifi_Pass", "" );
+  preferences.end();
+    
+  Serial.printf("Wifi Config cleared. \n");
+  delay( 2000 );
+  ESP.restart();  
 }
