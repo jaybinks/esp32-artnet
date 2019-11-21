@@ -53,7 +53,7 @@ void webserver_routine(void) {
 
     preferences.begin("my-app", false);
     for (uint8_t i = 0; i < server.args(); i++) {
-      Serial.printf( "Set Preference NAME: %s VALUE: %d \n", server.argName(i).c_str(), server.arg(i).toInt() );
+      //Serial.printf( "Set Preference NAME: %s VALUE: %d \n", server.argName(i).c_str(), server.arg(i).toInt() );
       preferences.putUInt(server.argName(i).c_str(), server.arg(i).toInt() );
 
       // Set value live without a reset
@@ -69,6 +69,7 @@ void webserver_routine(void) {
         pref_artnet_universe = server.arg(i).toInt();
       } else if ( server.argName(i) == "pref_artnet_startchannel" ) {
         pref_artnet_startchannel = server.arg(i).toInt();
+        set_DMX_channels( pref_artnet_startchannel );
       }
       
     }

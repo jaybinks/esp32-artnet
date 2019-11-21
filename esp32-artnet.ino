@@ -57,7 +57,7 @@ uint8_t startIndex;
 
 ArtnetReceiver artnet;
 uint32_t pref_artnet_universe = 1;
-uint8_t pref_artnet_startchannel =1;
+uint8_t pref_artnet_startchannel = 1;
 
 String pref_wifi_SSID;
 String pref_wifi_Pass;
@@ -78,24 +78,23 @@ int w=0;
 
 
 
-#define DMXChannel_Start 0
-#define DMXChannel_Mode DMXChannel_Start
-#define DMXChannel_Brightness DMXChannel_Start+1
+unsigned int DMXChannel_Mode;
+unsigned int DMXChannel_Brightness;
 
-#define DMXChannel_RGB_R DMXChannel_Start+2
-#define DMXChannel_RGB_G DMXChannel_Start+3
-#define DMXChannel_RGB_B DMXChannel_Start+4
-#define DMXChannel_RGB_StrobeSpeedA DMXChannel_Start+5
-#define DMXChannel_RGB_StrobeSpeedB DMXChannel_Start+6
+unsigned int DMXChannel_RGB_R;
+unsigned int DMXChannel_RGB_G;
+unsigned int DMXChannel_RGB_B;
+unsigned int DMXChannel_RGB_StrobeSpeedA;
+unsigned int DMXChannel_RGB_StrobeSpeedB;
 
-#define DMXChannel_Palet_Palet DMXChannel_Start+2
-#define DMXChannel_Palet_Speed DMXChannel_Start+3
+unsigned int DMXChannel_Palet_Palet;
+unsigned int DMXChannel_Palet_Speed;
 
-#define DMXChannel_Glitter_Count DMXChannel_Start+2
-#define DMXChannel_Glitter_Speed DMXChannel_Start+3
-#define DMXChannel_Glitter_R DMXChannel_Start+4
-#define DMXChannel_Glitter_G DMXChannel_Start+5
-#define DMXChannel_Glitter_B DMXChannel_Start+6
+unsigned int DMXChannel_Glitter_Count;
+unsigned int DMXChannel_Glitter_Speed;
+unsigned int DMXChannel_Glitter_R;
+unsigned int DMXChannel_Glitter_G;
+unsigned int DMXChannel_Glitter_B;
 
 #define Mode_Channel_Value_RGB     0
 #define Mode_Channel_Value_Pallet  50
@@ -147,7 +146,7 @@ void setup () {
     pref_config_mode  = preferences.getUInt("pref_config_mode", 0 );
   
     pref_artnet_universe     = preferences.getUInt("pref_artnet_universe", 0 );
-    pref_artnet_startchannel = preferences.getUInt("pref_artnet_startchannel", 0 ); 
+    pref_artnet_startchannel = preferences.getUInt("pref_artnet_startchannel", 1 ); 
   preferences.end();
 
   Serial.printf("PREFERENCES SET ********\n");
@@ -226,6 +225,8 @@ File file = SPIFFS.open("/index.html");
   FastLED.show(); 
   Serial.print("Starting ArtNET\n");
   delay(100); 
+
+  set_DMX_channels( pref_artnet_startchannel );
 
   artnet.begin();
   artnet.subscribe(pref_artnet_universe, artnet_callback);
@@ -432,4 +433,26 @@ void wipe_wifi(void) {
   Serial.printf("Wifi Config cleared. \n");
   delay( 2000 );
   ESP.restart();  
+}
+
+void set_DMX_channels(unsigned int start ) {
+  unsigned int DMXChannel_Start = start -1; // subtract one, because artnet channels actually start at 0 in our structs
+  
+  DMXChannel_Mode = DMXChannel_Start; 
+  DMXChannel_Brightness = DMXChannel_Start+1;
+
+  DMXChannel_RGB_R = DMXChannel_Start+2;
+  DMXChannel_RGB_G = DMXChannel_Start+3;
+  DMXChannel_RGB_B = DMXChannel_Start+4;
+  DMXChannel_RGB_StrobeSpeedA = DMXChannel_Start+5;
+  DMXChannel_RGB_StrobeSpeedB = DMXChannel_Start+6;
+
+  DMXChannel_Palet_Palet = DMXChannel_Start+2;
+  DMXChannel_Palet_Speed = DMXChannel_Start+3;
+
+  DMXChannel_Glitter_Count = DMXChannel_Start+2;
+  DMXChannel_Glitter_Speed = DMXChannel_Start+3;
+  DMXChannel_Glitter_R = DMXChannel_Start+4;
+  DMXChannel_Glitter_G = DMXChannel_Start+5;
+  DMXChannel_Glitter_B = DMXChannel_Start+6;
 }
