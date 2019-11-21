@@ -99,9 +99,10 @@ void sequende_RGB( int R, int G, int B, int StrobeSpeedA, int StrobeSpeedB ){
 
   if ( StrobeSpeedA==0 && StrobeSpeedB==0 ) {
     startIndex = 1;
+    last_chase_millis = millis();
   } else {
     // Map 0-255 as BPM... into MS
-    int RGB_Millis   = 60000/(StrobeSpeedA+(StrobeSpeedB*5)); //map( StrobeSpeedA, 1, 255, 1000, 1 );
+    unsigned int RGB_Millis   = 60000/(StrobeSpeedA+(StrobeSpeedB*5)); //map( StrobeSpeedA, 1, 255, 1000, 1 );
 
     if ( millis() >= last_chase_millis ) {
       startIndex ++;

@@ -152,7 +152,7 @@ void setup () {
   Serial.printf("PREFERENCES SET ********\n");
 
   Serial.printf("  pref_wifi_SSID:    %s\n", pref_wifi_SSID);
-  Serial.printf("  pref_wifi_Pass:    %s\n", (pref_wifi_Pass=="")?">>Set<<":"");
+  Serial.printf("  pref_wifi_Pass:    %s\n", (pref_wifi_Pass!="")?">>Set<<":"");
   
   Serial.printf("  pref_config_mode: %d\n", pref_config_mode);
   
@@ -207,7 +207,6 @@ File file = SPIFFS.open("/index.html");
   esp_wifi_set_ps (WIFI_PS_NONE);
     
   WiFi.begin( pref_wifi_SSID.c_str(), pref_wifi_Pass.c_str());
-  //WiFi.config(ip, gateway, subnet);
   
   while (WiFi.status() != WL_CONNECTED) { 
      Serial.print("."); 
