@@ -19,7 +19,7 @@ void webserver_routine(void) {
             "  <form method='POST' action='/save' enctype='multipart/form-data'>"
             "    <div class=form-group'><label class='col-md-4 control-label'>Set Config mode for controller </label><div class=col-md-4'>"
 
-            "     <select  name='pref_config_mode' class='form-control' onchange='this.form.submit()'>"
+            "     <select  name='pref_config_mode' class='form-control input-md' onchange='this.form.submit()'>"
             "      <option value='1' %s>Config Mode</option>"
             "      <option value='0' %s>Show Mode</option>"
             "    </select> </div></div>"          
