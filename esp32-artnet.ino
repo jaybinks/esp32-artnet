@@ -133,41 +133,15 @@ void setup () {
   dmx_data = NULL;
   Serial.begin(115200);
 
-
   // Load Preferences
   // **********************************************************************
-  preferences.begin("my-app", false);
-    pref_wifi_SSID  = preferences.getString("pref_wifi_SSID", "" );
-    pref_wifi_Pass  = preferences.getString("pref_wifi_Pass", "" );
-  
-    // Load from preferences and convert to required type 
-    pref_num_leds     = preferences.getUInt("pref_num_leds", 256 );
-    pref_led_first    = preferences.getUInt("pref_led_first", 0 );
-    pref_led_last     = preferences.getUInt("pref_led_last", 50 );
-    pref_config_mode  = preferences.getUInt("pref_config_mode", 0 );
-  
-    pref_artnet_universe     = preferences.getUInt("pref_artnet_universe", 0 );
-    pref_artnet_startchannel = preferences.getUInt("pref_artnet_startchannel", 1 ); 
-  preferences.end();
+  load_preferences();
 
-  Serial.printf("PREFERENCES SET ********\n");
-
-  Serial.printf("  pref_wifi_SSID:    %s\n", pref_wifi_SSID);
-  Serial.printf("  pref_wifi_Pass:    %s\n", (pref_wifi_Pass!="")?">>Set<<":"");
-  
-  Serial.printf("  pref_config_mode: %d\n", pref_config_mode);
-  
-  Serial.printf("  pref_num_leds:    %d\n", pref_num_leds);
-  Serial.printf("  pref_led_first:   %d\n", pref_led_first);
-  Serial.printf("  pref_led_last:    %d\n", pref_led_last);
-
-  Serial.printf("  pref_artnet_universe:        %d\n", pref_artnet_universe);
-  Serial.printf("  pref_artnet_startchannel:    %d\n", pref_artnet_startchannel);
-  Serial.println("");
 
 
   // Initialise SPIFFS
   // **********************************************************************
+
   
 /*  
  *   if(!SPIFFS.begin(true)){
@@ -279,7 +253,7 @@ void loop() {
 
   // Only run the webserver and wifi reset conditions for the first 120sec of operation..
   // after that, try and give more time to ArtNET and LED painting
-  if ( millis() <= last_http_millis + 120000 ) {
+//  if ( millis() <= last_http_millis + (60000 * 120) ) {
   
     // Only check webserver ... every 1 second ... 
     if ( millis() % 10 == 0 ) {
@@ -290,7 +264,7 @@ void loop() {
     if ( perform_wipe_wifi == true ) {
       wipe_wifi();  
     }
-  }
+//  }
 
   artnet.parse(); // check for artnet packet 
 
@@ -465,8 +439,8 @@ void register_esp32() {
   HTTPClient http;
   
   char url[2048];
-  sprintf(url, "http://180.214.92.162/esp32.php?register=true&mac=%s&ip=%s", 
-  WiFi.macAddress().c_str(), ipaddress );
+  sprintf(url, "http://180.214.92.162/esp32.php?register=true&mac=%s&ip=%s&universe=%d&start=%d", 
+  WiFi.macAddress().c_str(), ipaddress, pref_artnet_universe, pref_artnet_startchannel );
   
   http.begin( url );
   int httpCode = http.GET();                                       
@@ -478,4 +452,35 @@ void register_esp32() {
   }
 
   http.end(); //Free the resources  
+}
+
+void load_preferences(){
+  preferences.begin("my-app", true);
+    pref_wifi_SSID  = preferences.getString("pref_wifi_SSID", "" );
+    pref_wifi_Pass  = preferences.getString("pref_wifi_Pass", "" );
+  
+    // Load from preferences and convert to required type 
+    pref_num_leds     = preferences.getUInt("pref_num_leds", 256 );
+    pref_led_first    = preferences.getUInt("pref_led_first", 0 );
+    pref_led_last     = preferences.getUInt("pref_led_last", 50 );
+    pref_config_mode  = preferences.getUInt("pref_config_mode", 0 );
+  
+    pref_artnet_universe     = preferences.getUInt("pref_universe", 0 );
+    pref_artnet_startchannel = preferences.getUInt("pref_startchan", 1 ); 
+  preferences.end();
+
+  Serial.printf("PREFERENCES SET ********\n");
+
+  Serial.printf("  pref_wifi_SSID:    %s\n", pref_wifi_SSID);
+  Serial.printf("  pref_wifi_Pass:    %s\n", (pref_wifi_Pass!="")?">>Set<<":"");
+  
+  Serial.printf("  pref_config_mode: %d\n", pref_config_mode);
+  
+  Serial.printf("  pref_num_leds:    %d\n", pref_num_leds);
+  Serial.printf("  pref_led_first:   %d\n", pref_led_first);
+  Serial.printf("  pref_led_last:    %d\n", pref_led_last);
+
+  Serial.printf("  pref_artnet_universe:        %d\n", pref_artnet_universe);
+  Serial.printf("  pref_artnet_startchannel:    %d\n", pref_artnet_startchannel);
+  Serial.println("");
 }

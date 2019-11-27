@@ -28,8 +28,8 @@ void webserver_routine(void) {
             "    <label class='col-md-4 control-label'>First LED Index</label><div class='col-md-4'><input type='number' class='form-control input-md' name='pref_led_first' value='%d' onchange='this.form.submit()'></div><br>"
             "    <label class='col-md-4 control-label'>Last LED Index</label><div class='col-md-4'><input type='number' class='form-control input-md' name='pref_led_last' value='%d' onchange='this.form.submit()' ></div><br>"
 
-            "    <label class='col-md-4 control-label'>ArtNET Universe</label><div class='col-md-4'><input type='number' class='form-control input-md' name='pref_artnet_universe' value='%d' onchange='this.form.submit()'></div><br>"
-            "    <label class='col-md-4 control-label'>ArtNet Start Channel</label><div class='col-md-4'><input type='number' class='form-control input-md' name='pref_artnet_startchannel' value='%d' onchange='this.form.submit()'></div><br>"
+            "    <label class='col-md-4 control-label'>ArtNET Universe</label><div class='col-md-4'><input type='number' class='form-control input-md' name='pref_universe' value='%d' onchange='this.form.submit()'></div><br>"
+            "    <label class='col-md-4 control-label'>ArtNet Start Channel</label><div class='col-md-4'><input type='number' class='form-control input-md' name='pref_startchan' value='%d' onchange='this.form.submit()'></div><br>"
                         
             "    <input type='submit' class='btn btn-success'value='Save'>"
             "  </form>"
@@ -51,29 +51,13 @@ void webserver_routine(void) {
   server.on("/save", HTTP_POST, []() {
     last_http_millis = millis();
 
-    preferences.begin("my-app", false);
+    preferences.begin("my-app", false);  
     for (uint8_t i = 0; i < server.args(); i++) {
-      //Serial.printf( "Set Preference NAME: %s VALUE: %d \n", server.argName(i).c_str(), server.arg(i).toInt() );
       preferences.putUInt(server.argName(i).c_str(), server.arg(i).toInt() );
-
-      // Set value live without a reset
-      if ( server.argName(i) == "pref_config_mode" ) {
-        pref_config_mode = server.arg(i).toInt();
-      } else if ( server.argName(i) == "pref_led_first" ) {
-        pref_led_first = server.arg(i).toInt();
-      } else if ( server.argName(i) == "pref_led_last" ) {
-        pref_led_last = server.arg(i).toInt();
-      } else if ( server.argName(i) == "pref_num_leds" ) {      
-        pref_num_leds = server.arg(i).toInt();
-      } else if ( server.argName(i) == "pref_artnet_universe" ) {
-        pref_artnet_universe = server.arg(i).toInt();
-      } else if ( server.argName(i) == "pref_artnet_startchannel" ) {
-        pref_artnet_startchannel = server.arg(i).toInt();
-        set_DMX_channels( pref_artnet_startchannel );
-      }
-      
     }
     preferences.end();
+
+    load_preferences();
     
     server.sendHeader("Location", "/",true); //Redirect to our html web page 
     server.send(302, "text/plane",""); 
@@ -81,7 +65,7 @@ void webserver_routine(void) {
     server.sendHeader("Connection", "close");
   });
 
-  server.on("/reset", HTTP_GET, []() {
+  server.on("/reset", HTTP_POST, []() {
     server.sendHeader("Location", "/",true); //Redirect to our html web page 
     server.send(302, "text/plane",""); 
 
