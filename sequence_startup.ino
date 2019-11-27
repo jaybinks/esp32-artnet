@@ -92,17 +92,66 @@ void sequence_startup(){
     }
 }
 
+void sequence_startup_pos( int i ){
 
+    
+    // Startup Sequence 
+    //for ( int i=0; i<(pref_num_leds + 6); i++ ) {
+        //Green
+        if ( i < pref_num_leds ) 
+            leds[i] = CRGB( 20 ,20, 0);
+
+        //Red
+        if ( i-1 >= 0 && i-1 < pref_num_leds ) {
+            leds[i-1] = CRGB( 0,255,0);
+        }
+
+        //Green
+        if ( i-2 >= 0 && i-2 < pref_num_leds) {
+            leds[i-2] = CRGB( 255,0,0);
+        }
+
+        if ( i-3 >= 0 && i-3 < pref_num_leds) {
+            //Blue
+            leds[i-3] = CRGB( 0,0,255); 
+        }
+
+        if ( i-4 >= 0 && i-4 < pref_num_leds) {
+            //Blue
+            leds[i-4] = CRGB( 0,0,50); 
+        }
+
+            if ( i-5 >= 0 && i-5 < pref_num_leds) {
+            // Off
+            leds[i-5] = CRGB( 0,0,0); 
+        }   
+
+        FastLED.show();
+        //delay(15);
+
+    //}
+}
+
+
+int LastStrobeSpeedA;
+int LastStrobeSpeedB;
 
 void sequende_RGB( int R, int G, int B, int StrobeSpeedA, int StrobeSpeedB ){
   // RGB Mode
+
+  // if Strobe speed changes, reset the interval
+  if (( StrobeSpeedA != LastStrobeSpeedA ) || ( StrobeSpeedB != LastStrobeSpeedB )) { 
+    last_chase_millis = millis()+20;
+  }
+  LastStrobeSpeedA = StrobeSpeedA;
+  LastStrobeSpeedB = StrobeSpeedB;
 
   if ( StrobeSpeedA==0 && StrobeSpeedB==0 ) {
     startIndex = 1;
     last_chase_millis = millis();
   } else {
     // Map 0-255 as BPM... into MS
-    unsigned int RGB_Millis   = 60000/(StrobeSpeedA+(StrobeSpeedB*5)); //map( StrobeSpeedA, 1, 255, 1000, 1 );
+    unsigned int RGB_Millis   = ( 60000/(StrobeSpeedA+(StrobeSpeedB*5)) / 2 ); //  /2 for on/off cycle
 
     if ( millis() >= last_chase_millis ) {
       startIndex ++;

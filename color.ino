@@ -1,8 +1,8 @@
 
-void FillLEDsFromPaletteColors( uint8_t colorIndex)
+void FillLEDsFromPaletteColors( uint8_t colorIndex )
 {
     for( int i = 0; i < pref_num_leds; i++) {
-        leds[i] = ColorFromPalette( currentPalette, colorIndex, brightness, currentBlending);
+        leds[i] = ColorFromPalette( currentPalette, colorIndex, 255, currentBlending);
         colorIndex += 3;
     }
 }

@@ -36,7 +36,7 @@ CRGB leds[256];
 unsigned long last_LED_millis;
 unsigned long millis_per_refresh;
 
-unsigned long last_chase_millis;
+unsigned long last_chase_millis = 0;
 unsigned long millis_per_chase;
 
 unsigned long last_http_millis = 0;
@@ -48,7 +48,6 @@ TBlendType    currentBlending;
 extern CRGBPalette16 myRedWhiteBluePalette;
 extern const TProgmemPalette16 myRedWhiteBluePalette_p PROGMEM;
 
-int brightness = 0;
 int speed = 255;
 int mode = 0;
 uint8_t* dmx_data;
@@ -277,8 +276,12 @@ void loop() {
     if ( pref_config_mode == 1 ) {
       FastLED.setBrightness( 255 );
       sequence_config_mode();
+    } else if ( pref_config_mode == 2 ) {
+      FastLED.setBrightness( 255 );
+      sequence_pallet(0, 255 );
     } else { 
-        FastLED.setBrightness( brightness );
+
+        FastLED.setBrightness( dmx_data[ DMXChannel_Brightness ] );
         if ( dmx_data != NULL ) {
           if ( mode < Mode_Channel_Value_Pallet ) {
             sequende_RGB( dmx_data[DMXChannel_RGB_B], dmx_data[DMXChannel_RGB_R], dmx_data[DMXChannel_RGB_G], dmx_data[DMXChannel_RGB_StrobeSpeedA], dmx_data[DMXChannel_RGB_StrobeSpeedB] ); 
@@ -328,17 +331,13 @@ void int_buttonpress() {
 
 void artnet_callback(uint8_t* data, uint16_t size)
 {
-    //Serial.print("lambda : artnet data \n");
-
     for (size_t i = 0; i < size; ++i)
     {
         //Serial.print(data[i]); Serial.print(",");
         mode = data[ DMXChannel_Mode ];
-        brightness = data[ DMXChannel_Brightness ];
 
         dmx_data = data;
     }
-    //Serial.println();
 }
 
 int sine_wave()
@@ -464,7 +463,7 @@ void load_preferences(){
     pref_num_leds     = preferences.getUInt("pref_num_leds", 256 );
     pref_led_first    = preferences.getUInt("pref_led_first", 0 );
     pref_led_last     = preferences.getUInt("pref_led_last", 50 );
-    pref_config_mode  = preferences.getUInt("pref_config_mode", 0 );
+    pref_config_mode  = preferences.getUInt("pref_mode", 0 );
   
     pref_artnet_universe     = preferences.getUInt("pref_universe", 0 );
     pref_artnet_startchannel = preferences.getUInt("pref_startchan", 1 ); 
@@ -475,13 +474,13 @@ void load_preferences(){
   Serial.printf("  pref_wifi_SSID:    %s\n", pref_wifi_SSID);
   Serial.printf("  pref_wifi_Pass:    %s\n", (pref_wifi_Pass!="")?">>Set<<":"");
   
-  Serial.printf("  pref_config_mode: %d\n", pref_config_mode);
+  Serial.printf("  pref_mode: %d\n", pref_config_mode);
   
   Serial.printf("  pref_num_leds:    %d\n", pref_num_leds);
   Serial.printf("  pref_led_first:   %d\n", pref_led_first);
   Serial.printf("  pref_led_last:    %d\n", pref_led_last);
 
-  Serial.printf("  pref_artnet_universe:        %d\n", pref_artnet_universe);
-  Serial.printf("  pref_artnet_startchannel:    %d\n", pref_artnet_startchannel);
+  Serial.printf("  pref_universe:        %d\n", pref_artnet_universe);
+  Serial.printf("  pref_startchan:    %d\n", pref_artnet_startchannel);
   Serial.println("");
 }
