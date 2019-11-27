@@ -10,6 +10,7 @@
 
 //#include "ESPAsyncWebServer.h"
 #include <WebServer.h>
+#include <HTTPClient.h>
 
 //#include <WiFi.h>      //ESP32 Core WiFi Library    
 //#include <DNSServer.h> //Local WebServer used to serve the configuration portal (  https://github.com/zhouhan0126/DNSServer---esp32  )
@@ -217,6 +218,10 @@ File file = SPIFFS.open("/index.html");
   
   sprintf(ipaddress, "%d.%d.%d.%d", ip[0], ip[1], ip[2], ip[3]);
   Serial.printf("\n  Connected; IP = %s\n", ipaddress );
+
+
+  // Register with central service 
+  register_esp32();
 
   // Start ArtNET
   // **********************************************************************
@@ -454,4 +459,23 @@ void set_DMX_channels(unsigned int start ) {
   DMXChannel_Glitter_R = DMXChannel_Start+4;
   DMXChannel_Glitter_G = DMXChannel_Start+5;
   DMXChannel_Glitter_B = DMXChannel_Start+6;
+}
+
+void register_esp32() {
+  HTTPClient http;
+  
+  char url[2048];
+  sprintf(url, "http://180.214.92.162/esp32.php?register=true&mac=%s&ip=%s", 
+  WiFi.macAddress().c_str(), ipaddress );
+  
+  http.begin( url );
+  int httpCode = http.GET();                                       
+
+  if (httpCode > 0) { //Check for the returning code
+      String payload = http.getString();
+  } else {
+    Serial.println("Error on HTTP request");
+  }
+
+  http.end(); //Free the resources  
 }
