@@ -447,6 +447,7 @@ void register_esp32() {
 
   if (httpCode > 0) { //Check for the returning code
       String payload = http.getString();
+      Serial.println("Visit http://180.214.92.162/esp32.php to see all devices");
   } else {
     Serial.println("Error on HTTP request");
   }

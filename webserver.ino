@@ -35,6 +35,7 @@ void webserver_routine(void) {
             "  </form>"
             
             "  <form method='POST' action='/reset' enctype='multipart/form-data'>"
+            "    <input type='hidden' name='reset'>"
             "    <input type='submit' class='btn btn-danger' value='Reset'>"
             "  </form>"
             "</html>",
@@ -66,8 +67,10 @@ void webserver_routine(void) {
   });
 
   server.on("/reset", HTTP_POST, []() {
-    server.sendHeader("Location", "/",true); //Redirect to our html web page 
-    server.send(302, "text/plane",""); 
+    char resetHTML[5048];
+    sprintf( resetHTML, "<html><head><meta http-equiv='refresh' content='5; url=http://%s/'></head></html>" , ipaddress);
+    
+    server.send(200, "text/html", resetHTML);
 
     server.sendHeader("Connection", "close");
     Serial.printf("reset post\n");
